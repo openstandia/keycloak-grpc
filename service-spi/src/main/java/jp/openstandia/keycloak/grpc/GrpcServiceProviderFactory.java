@@ -1,5 +1,6 @@
 package jp.openstandia.keycloak.grpc;
 
+import org.keycloak.Config;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.provider.ProviderFactory;
 
@@ -11,4 +12,9 @@ public interface GrpcServiceProviderFactory extends ProviderFactory<GrpcServiceP
     }
 
     GrpcServiceProvider create();
+
+    @Override
+    default void init(Config.Scope config) {
+
+    }
 }
