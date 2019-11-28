@@ -1,0 +1,14 @@
+<jboss-deployment-structure>
+    <deployment>
+        <dependencies>
+            <module name="org.keycloak.keycloak-core" export="true" />
+            <module name="org.keycloak.keycloak-server-spi" export="true" />
+            <module name="org.keycloak.keycloak-server-spi-private" export="true" />
+            <module name="org.keycloak.keycloak-services" export="true" />
+            <module name="org.keycloak.keycloak-model-jpa" export="true" />
+            <module name="com.google.guava" export="true" />
+            <module name="org.jboss.logging" export="true" />
+            <module name="deployment.keycloak-grpc-server.war" export="true" />
+        </dependencies>
+    </deployment>
+</jboss-deployment-structure>
