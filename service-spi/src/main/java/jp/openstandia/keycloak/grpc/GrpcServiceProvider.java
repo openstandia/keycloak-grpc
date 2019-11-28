@@ -4,7 +4,6 @@ import io.grpc.BindableService;
 import org.jboss.resteasy.spi.ResteasyUriInfo;
 import org.keycloak.common.util.Resteasy;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.KeycloakSessionTask;
 import org.keycloak.models.KeycloakTransactionManager;
 import org.keycloak.provider.Provider;
 import org.keycloak.services.resources.admin.AdminAuth;
