@@ -1,7 +1,10 @@
 package jp.openstandia.keycloak.grpc;
 
 import org.keycloak.common.util.Resteasy;
+import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.KeycloakSessionTask;
+import org.keycloak.models.KeycloakTransactionManager;
 
 import javax.servlet.ServletContext;
 

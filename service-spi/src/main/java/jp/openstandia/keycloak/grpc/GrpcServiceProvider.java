@@ -4,6 +4,7 @@ import io.grpc.BindableService;
 import org.jboss.resteasy.spi.ResteasyUriInfo;
 import org.keycloak.common.util.Resteasy;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionTask;
 import org.keycloak.models.KeycloakTransactionManager;
 import org.keycloak.provider.Provider;
 import org.keycloak.services.resources.admin.AdminAuth;
@@ -17,6 +18,29 @@ public interface GrpcServiceProvider extends Provider, BindableService {
         KeycloakSession session = Constant.KeycloakSessionContextKey.get();
 //        Resteasy.pushContext(KeycloakSession.class, session);
         return session;
+    }
+
+    default <T> T withTransaction(TransactionalTask<T> task) {
+        KeycloakSession session = getKeycloakSession();
+        KeycloakTransactionManager tx = session.getTransactionManager();
+
+        try {
+            tx.begin();
+            T result = task.run(session);
+            if (tx.isActive()) {
+                if (tx.getRollbackOnly()) {
+                    tx.rollback();
+                } else {
+                    tx.commit();
+                }
+            }
+            return result;
+        } catch (RuntimeException e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+            throw e;
+        }
     }
 
     default AdminAuth authenticate() {
