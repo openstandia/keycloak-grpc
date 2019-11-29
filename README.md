@@ -13,6 +13,7 @@
 ## Install
 
 ### Build
+
 Install JDK 8+ and [maven3](https://maven.apache.org/download.cgi) then build:
 
 ```
@@ -22,9 +23,12 @@ mvn install
 After successful the build, you can find `keycloak-grpc-server.war` in `./server/target` directory.
 Also, you can see `keycloak-grpc-admin-services.jar` in `./admin/target` directory which is sample implementation of admin gRPC service.
 
-### Deploy gRPC server and sample gRPC admin service
+### Setting
+
+#### SPI loader setting
+
 Since **keycloak-grpc** defines own custom SPIs for gRPC server and services,
-you need to add a bit of configuration into your `$KEYCLOAK_HOME/standalone/configuration/standalone.xml` or `standalone-ha.xml` first.
+you need to add a bit of configuration into your `$KEYCLOAK_HOME/standalone/configuration/standalone.xml` or `standalone-ha.xml` to load the SPIs.
 
 ```
         <subsystem xmlns="urn:jboss:domain:keycloak-server:1.1">
@@ -40,7 +44,38 @@ you need to add a bit of configuration into your `$KEYCLOAK_HOME/standalone/conf
             </providers>
 ```
 
-Then put `keycloak-grpc-server.war` into `$KEYCLOAK_HOME/standalone/deployments` directory.
+#### gRPC server setting
+
+The gRPC server has some options that you can configure in your `$KEYCLOAK_HOME/standalone/configuration/standalone.xml` or `standalone-ha.xml`.
+
+* `port`: Port number of the gRPC server. (Default: 6565)
+* `baseUrl`: Base URL of keycloak server which is used as issuer. You need to configure this option when using authorization by access token in the gRPC services.
+
+```
+            <spi name="hostname">
+                <default-provider>default</default-provider>
+                <provider name="default" enabled="true">
+                    <properties>
+                        <property name="frontendUrl" value="${keycloak.frontendUrl:}"/>
+                        <property name="forceBackendUrlToFrontendUrl" value="false"/>
+                    </properties>
+                </provider>
+            </spi>
+            <!-- Add the following config -->
+            <spi name="grpc-server">
+                <provider name="default" enabled="true">
+                    <properties>
+                        <property name="port" value="9999"/>
+                        <property name="baseUrl" value="https://keycloak.example.com/auth"/>
+                    </properties>
+                </provider>
+            </spi>
+        </subsystem>
+```
+
+### Deploy gRPC server and sample gRPC admin service
+
+Put `keycloak-grpc-server.war` into `$KEYCLOAK_HOME/standalone/deployments` directory.
 Also, put `keycloak-grpc-admin-services.jar` into `$KEYCLOAK_HOME/standalone/deployments` directory simply
 if you want to deploy the sample gRPC admin service.
 
@@ -60,32 +95,6 @@ Please see [the sample implementation of admin gRPC service](https://github.com/
 
 After building your services, you can deploy it by putting it into `$KEYCLOAK_HOME/standalone/deployments` directory simply.
 Also, it supports hot deployment thanks to keycloak.
-
-## Server configuration
-
-If you want to change the port number of the gRPC server, add the configuration of the `grpc-server` SPI
-in your `$KEYCLOAK_HOME/standalone/configuration/standalone.xml` or `standalone-ha.xml`:
-
-```
-            <spi name="hostname">
-                <default-provider>default</default-provider>
-                <provider name="default" enabled="true">
-                    <properties>
-                        <property name="frontendUrl" value="${keycloak.frontendUrl:}"/>
-                        <property name="forceBackendUrlToFrontendUrl" value="false"/>
-                    </properties>
-                </provider>
-            </spi>
-            <!-- Add the following config -->
-            <spi name="grpc-server">
-                <provider name="default" enabled="true">
-                    <properties>
-                        <property name="port" value="9999"/>
-                    </properties>
-                </provider>
-            </spi>
-        </subsystem>
-```
 
 ## License
 
