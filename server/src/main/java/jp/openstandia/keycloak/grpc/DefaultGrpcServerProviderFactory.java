@@ -62,10 +62,15 @@ public class DefaultGrpcServerProviderFactory implements GrpcServerProviderFacto
 
     protected void startServer() {
         int port = scope.getInt("port", 6565);
+        String baseUrl = scope.get("baseUrl");
+
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            logger.warnv("'baseUrl' is empty. You need to setup it when using authorization by Bearer token.");
+        }
 
         ServerBuilder<?> builder = ServerBuilder.forPort(port)
                 .intercept(TransmitStatusRuntimeExceptionInterceptor.instance())
-                .intercept(KeycloakSessionInterceptor.instance(sessionFactory));
+                .intercept(KeycloakSessionInterceptor.instance(sessionFactory, baseUrl));
 
         List<ProviderFactory> factories = sessionFactory.getProviderFactories(GrpcServiceProvider.class);
 

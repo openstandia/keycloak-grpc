@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "jp.openstandia.keycloak.grpc.admin";
+
+package keycloak;
+
+service UsersResource {
+    rpc getUsers(GetUsersRequest) returns (GetUsersResponse);
+}
+
+message GetUsersRequest {
+    string realm = 1;
+}
+
+message GetUsersResponse {
+    repeated User users = 1;
+}
+
+message User {
+    string id = 1;
+    int64 createdTimestamp = 2;
+    string username = 3;
+    string email = 4;
+    string firstName = 5;
+    string lastName = 6;
+    bool enabled = 7;
+    bool totp = 8;
+    bool emailVerified = 9;
+    repeated string disableableCredentialTypes = 10;
+    repeated string requiredActions = 11;
+    int32 notBefore = 12;
+    repeated Attribute attributes = 13;
+    map<string, bool> access = 14;
+}
+
+message Attribute {
+  string key = 1;
+  repeated string value = 2;
+}

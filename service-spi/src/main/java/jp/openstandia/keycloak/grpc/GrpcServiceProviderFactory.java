@@ -15,6 +15,6 @@ public interface GrpcServiceProviderFactory extends ProviderFactory<GrpcServiceP
 
     @Override
     default void init(Config.Scope config) {
-
     }
+
 }

@@ -11,13 +11,15 @@ public class KeycloakSessionInterceptor implements ServerInterceptor {
     private static final Logger logger = Logger.getLogger(DefaultGrpcServerProviderFactory.class);
 
     private final KeycloakSessionFactory sessionFactory;
+    private final String baseUrl;
 
-    private KeycloakSessionInterceptor(KeycloakSessionFactory sessionFactory) {
+    private KeycloakSessionInterceptor(KeycloakSessionFactory sessionFactory, String baseUrl) {
         this.sessionFactory = sessionFactory;
+        this.baseUrl = baseUrl;
     }
 
-    public static ServerInterceptor instance(KeycloakSessionFactory sessionFactory) {
-        return new KeycloakSessionInterceptor(sessionFactory);
+    public static ServerInterceptor instance(KeycloakSessionFactory sessionFactory, String baseUrl) {
+        return new KeycloakSessionInterceptor(sessionFactory, baseUrl);
     }
 
     @Override
@@ -62,24 +64,10 @@ public class KeycloakSessionInterceptor implements ServerInterceptor {
             }
         };
         session.getContext().setConnection(connection);
-        
-
-//        final KeycloakTransactionManager tx = session.getTransactionManager();
-//        tx.begin();
-
-//        GrpcAdminRoot adminRoot = new GrpcAdminRoot(session);
-//        AdminAuth adminAuth = adminRoot.authenticateRealmAdminRequest(headers);
 
         ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT> serverCall = new ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT>(call) {
             @Override
             public void close(Status status, Metadata trailers) {
-//                if (tx.isActive()) {
-//                    if (tx.getRollbackOnly()) {
-//                        tx.rollback();
-//                    } else {
-//                        tx.commit();
-//                    }
-//                }
                 if (!status.isOk()) {
                     logger.errorv("Error in calling gRPC service. status={0}, metadata={1}", status, trailers);
                 }
@@ -92,8 +80,9 @@ public class KeycloakSessionInterceptor implements ServerInterceptor {
 
         Context ctx = Context.current()
                 .withValue(Constant.KeycloakSessionContextKey, session)
+                .withValue(Constant.BaseUrlContextKey, baseUrl)
                 .withValue(Constant.AuthorizationHeaderContextKey, token);
-//                .withValue(Constant.AdminAuthContextKey, adminAuth);
+
         return Contexts.interceptCall(ctx, serverCall, headers, next);
     }
 
