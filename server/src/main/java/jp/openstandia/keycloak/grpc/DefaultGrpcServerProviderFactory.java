@@ -21,10 +21,6 @@ public class DefaultGrpcServerProviderFactory implements GrpcServerProviderFacto
 
     private static final Logger logger = Logger.getLogger(DefaultGrpcServerProviderFactory.class);
 
-    static {
-        System.out.println("################ DefaultGrpcServerProviderFactory loaded");
-    }
-
     protected KeycloakSessionFactory sessionFactory;
     protected Config.Scope scope;
     protected Server server;

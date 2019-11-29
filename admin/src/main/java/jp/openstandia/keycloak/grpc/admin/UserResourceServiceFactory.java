@@ -5,10 +5,6 @@ import jp.openstandia.keycloak.grpc.GrpcServiceProvider;
 
 public class UserResourceServiceFactory extends AbstractGrpcServiceProviderFactory {
 
-    static {
-        System.out.println("################ UserResourceServiceFactory loaded");
-    }
-
     @Override
     public GrpcServiceProvider create() {
         return new UserResourceService();

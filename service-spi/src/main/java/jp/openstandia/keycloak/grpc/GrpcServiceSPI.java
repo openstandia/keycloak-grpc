@@ -6,10 +6,6 @@ import org.keycloak.provider.Spi;
 
 public class GrpcServiceSPI implements Spi {
 
-    static {
-        System.out.println("################ GrpcServiceSPI loaded");
-    }
-
     @Override
     public boolean isInternal() {
         return false;
