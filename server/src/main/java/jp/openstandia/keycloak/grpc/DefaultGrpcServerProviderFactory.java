@@ -12,6 +12,7 @@ import org.keycloak.models.utils.PostMigrationEvent;
 import org.keycloak.provider.ProviderEvent;
 import org.keycloak.provider.ProviderEventListener;
 import org.keycloak.provider.ProviderFactory;
+import org.keycloak.services.resources.KeycloakApplication;
 
 import javax.servlet.ServletContext;
 import java.io.IOException;
@@ -21,6 +22,7 @@ public class DefaultGrpcServerProviderFactory implements GrpcServerProviderFacto
 
     private static final Logger logger = Logger.getLogger(DefaultGrpcServerProviderFactory.class);
 
+    protected KeycloakApplication application;
     protected KeycloakSessionFactory sessionFactory;
     protected Config.Scope scope;
     protected Server server;
@@ -70,7 +72,7 @@ public class DefaultGrpcServerProviderFactory implements GrpcServerProviderFacto
 
         ServerBuilder<?> builder = ServerBuilder.forPort(port)
                 .intercept(TransmitStatusRuntimeExceptionInterceptor.instance())
-                .intercept(KeycloakSessionInterceptor.instance(sessionFactory, baseUrl));
+                .intercept(KeycloakSessionInterceptor.instance(application, sessionFactory, baseUrl));
 
         List<ProviderFactory> factories = sessionFactory.getProviderFactories(GrpcServiceProvider.class);
 
@@ -123,6 +125,7 @@ public class DefaultGrpcServerProviderFactory implements GrpcServerProviderFacto
             // If the war is deployed after booting (Hot deployed), we cant't trap this event.
             if (event instanceof PostMigrationEvent) {
                 synchronized (lock) {
+                    application = Resteasy.getContextData(KeycloakApplication.class);
                     startServer();
                 }
                 return;

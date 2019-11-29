@@ -1,21 +1,47 @@
 package jp.openstandia.keycloak.grpc;
 
 import io.grpc.BindableService;
+import org.jboss.resteasy.core.Dispatcher;
+import org.jboss.resteasy.core.Headers;
+import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.jboss.resteasy.spi.ResteasyUriInfo;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.common.util.Resteasy;
 import org.keycloak.models.*;
 import org.keycloak.provider.Provider;
-import org.keycloak.services.ForbiddenException;
 import org.keycloak.services.managers.RealmManager;
+import org.keycloak.services.resources.KeycloakApplication;
 import org.keycloak.services.resources.admin.AdminAuth;
 import org.keycloak.services.resources.admin.GrpcAdminRoot;
+import org.keycloak.services.resources.admin.RealmsAdminResource;
 
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 
 public interface GrpcServiceProvider extends Provider, BindableService {
+
+    default <T> T nullable(T s) {
+        if (s != null) {
+            if (s instanceof String) {
+                if (((String) s).isEmpty()) {
+                    return null;
+                }
+            } else if (s instanceof Integer) {
+                if ((Integer) s == 0) {
+                    return null;
+                }
+            }
+        }
+        return s;
+    }
+
+    default KeycloakApplication getKeycloakApplication() {
+        return Constant.KeycloakApplicationContextKey.get();
+    }
 
     default KeycloakSession getKeycloakSession() {
         return Constant.KeycloakSessionContextKey.get();
@@ -35,6 +61,7 @@ public interface GrpcServiceProvider extends Provider, BindableService {
         Resteasy.pushContext(UriInfo.class, resteasyUriInfo);
 
         // See KeycloakSessionServletFilter
+        Resteasy.pushContext(KeycloakApplication.class, getKeycloakApplication());
         Resteasy.pushContext(KeycloakSession.class, session);
         Resteasy.pushContext(ClientConnection.class, session.getContext().getConnection());
         Resteasy.pushContext(KeycloakTransaction.class, tx);
@@ -87,6 +114,30 @@ public interface GrpcServiceProvider extends Provider, BindableService {
         AdminAuth adminAuth = adminRoot.authenticateRealmAdminRequest(token);
 
         return adminAuth;
+    }
+
+    default HttpHeaders getHeaders() {
+        String token = Constant.AuthorizationHeaderContextKey.get();
+
+        MultivaluedMap<String, String> map = new Headers<>();
+        map.putSingle("Authorization", token);
+        HttpHeaders headers = new ResteasyHttpHeaders(map);
+        return headers;
+    }
+
+    default RealmsAdminResource getRealmsAdmin(String httpMethod, String uri) {
+        KeycloakSession session = getKeycloakSession();
+        KeycloakTransactionManager tx = session.getTransactionManager();
+        if (!tx.isActive() || Resteasy.getContextData(UriInfo.class) == null) {
+            throw new IllegalStateException("You must call getRealmsAdmin() within 'withTransaction()'");
+        }
+
+        URI baseUri = URI.create(getBaseUrl());
+        ResteasyUriInfo resteasyUriInfo = new ResteasyUriInfo(uri, "", baseUri.getPath());
+        Resteasy.pushContext(UriInfo.class, resteasyUriInfo);
+
+        GrpcAdminRoot adminRoot = new GrpcAdminRoot(session, httpMethod, uri);
+        return (RealmsAdminResource) adminRoot.getRealmsAdmin(getHeaders());
     }
 
     @Override

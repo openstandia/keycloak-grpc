@@ -5,21 +5,24 @@ import org.jboss.logging.Logger;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.services.resources.KeycloakApplication;
 
 public class KeycloakSessionInterceptor implements ServerInterceptor {
 
     private static final Logger logger = Logger.getLogger(DefaultGrpcServerProviderFactory.class);
 
+    private final KeycloakApplication application;
     private final KeycloakSessionFactory sessionFactory;
     private final String baseUrl;
 
-    private KeycloakSessionInterceptor(KeycloakSessionFactory sessionFactory, String baseUrl) {
+    private KeycloakSessionInterceptor(KeycloakApplication application, KeycloakSessionFactory sessionFactory, String baseUrl) {
+        this.application = application;
         this.sessionFactory = sessionFactory;
         this.baseUrl = baseUrl;
     }
 
-    public static ServerInterceptor instance(KeycloakSessionFactory sessionFactory, String baseUrl) {
-        return new KeycloakSessionInterceptor(sessionFactory, baseUrl);
+    public static ServerInterceptor instance(KeycloakApplication application, KeycloakSessionFactory sessionFactory, String baseUrl) {
+        return new KeycloakSessionInterceptor(application, sessionFactory, baseUrl);
     }
 
     @Override
@@ -79,6 +82,7 @@ public class KeycloakSessionInterceptor implements ServerInterceptor {
         String token = headers.get(Constant.AuthorizationMetadataKey);
 
         Context ctx = Context.current()
+                .withValue(Constant.KeycloakApplicationContextKey, application)
                 .withValue(Constant.KeycloakSessionContextKey, session)
                 .withValue(Constant.BaseUrlContextKey, baseUrl)
                 .withValue(Constant.AuthorizationHeaderContextKey, token);

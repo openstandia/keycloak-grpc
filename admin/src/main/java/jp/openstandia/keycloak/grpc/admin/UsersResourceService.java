@@ -6,12 +6,17 @@ import jp.openstandia.keycloak.grpc.GrpcServiceProvider;
 import org.keycloak.credential.CredentialModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.RealmAdminResource;
+import org.keycloak.services.resources.admin.RealmsAdminResource;
+import org.keycloak.services.resources.admin.UsersResource;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 import org.keycloak.services.resources.admin.permissions.UserPermissionEvaluator;
 
+import javax.ws.rs.HttpMethod;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,18 +25,12 @@ public class UsersResourceService extends UsersResourceGrpc.UsersResourceImplBas
     @Override
     public void getUsers(GetUsersRequest request, StreamObserver<GetUsersResponse> responseObserver) {
         List<User> results = withTransaction(session -> {
+            RealmsAdminResource resource = getRealmsAdmin(HttpMethod.GET, getBaseUrl() + "/" + request.getRealm() + "/users");
+            RealmAdminResource realmResource = resource.getRealmAdmin(getHeaders(), request.getRealm());
+            UsersResource usersResource = realmResource.users();
 
-            AdminAuth adminAuth = authenticate();
+            List<UserRepresentation> users = usersResource.getUsers(null, null, null, null, null, null, null, null);
 
-            String realmName = request.getRealm();
-
-            RealmManager realmManager = new RealmManager(session);
-            RealmModel realm = realmManager.getRealmByName(realmName);
-
-            AdminPermissionEvaluator auth = AdminPermissions.evaluator(session, realm, adminAuth);
-            UserPermissionEvaluator usersEvaluator = auth.users();
-
-            List<UserModel> users = session.users().getUsers(realm, false);
             List<User> resUsers = users.stream().map(x -> {
                 return BuilderWrapper.wrap(User.newBuilder())
                         .nullSafe(x.getId(), (b, v) -> b.setId(v))
@@ -40,21 +39,21 @@ public class UsersResourceService extends UsersResourceGrpc.UsersResourceImplBas
                         .nullSafe(x.getFirstName(), (b, v) -> b.setFirstName(v))
                         .nullSafe(x.getLastName(), (b, v) -> b.setLastName(v))
                         .nullSafe(x.isEnabled(), (b, v) -> b.setEnabled(v))
-                        .nullSafe(session.userCredentialManager().isConfiguredFor(realm, x, CredentialModel.OTP), (b, v) -> b.setTotp(v))
+                        .nullSafe(x.isTotp(), (b, v) -> b.setTotp(v))
                         .nullSafe(x.isEmailVerified(), (b, v) -> b.setEmailVerified(v))
-                        .nullSafe(session.userCredentialManager().getDisableableCredentialTypes(realm, x), (b, v) -> b.addAllDisableableCredentialTypes(v))
+                        .nullSafe(x.getDisableableCredentialTypes(), (b, v) -> b.addAllDisableableCredentialTypes(v))
                         .nullSafe(x.getRequiredActions(), (b, v) -> b.addAllRequiredActions(v))
-                        .nullSafe(session.users().getNotBeforeOfUser(realm, x), (b, v) -> b.setNotBefore(v))
-                        .nullSafe(
-                                x.getAttributes().entrySet().stream().map(y -> {
-                                    return Attribute.newBuilder()
-                                            .setKey(y.getKey())
-                                            .addAllValue(y.getValue())
-                                            .build();
-                                }).collect(Collectors.toList()),
-                                (b, v) -> b.addAllAttributes(v)
-                        )
-                        .nullSafe(usersEvaluator.getAccess(x), (b, v) -> b.putAllAccess(v))
+                        .nullSafe(x.getNotBefore(), (b, v) -> b.setNotBefore(v))
+                        .nullSafe(x.getAttributes(), (b, v) -> {
+                             List<Attribute> attrs = v.entrySet().stream().map(y -> {
+                                return Attribute.newBuilder()
+                                        .setKey(y.getKey())
+                                        .addAllValue(y.getValue())
+                                        .build();
+                            }).collect(Collectors.toList());
+                            return b.addAllAttributes(attrs);
+                        })
+                        .nullSafe(x.getAccess(), (b, v) -> b.putAllAccess(v))
                         .unwrap()
                         .build();
             }).collect(Collectors.toList());

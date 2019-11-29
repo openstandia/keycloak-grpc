@@ -21,11 +21,12 @@ import org.keycloak.services.ForbiddenException;
 import org.keycloak.services.ServicesLogger;
 import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resources.LoginActionsService;
-import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.*;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 import org.keycloak.services.resources.admin.permissions.UserPermissionEvaluator;
 
+import javax.ws.rs.HttpMethod;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -38,109 +39,25 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
 
     private static final Logger logger = Logger.getLogger(UserResourceService.class);
 
-    private static <T> T nullable(T s) {
-        if (s != null) {
-            if (s instanceof String) {
-                if (((String)s).isEmpty()) {
-                    return null;
-                }
-            } else if (s instanceof Integer) {
-                if ((Integer)s == 0) {
-                    return null;
-                }
-            }
-        }
-        return s;
-    }
-
     @Override
     public void executeActionsEmail(ExecuteActionsEmailRequest request, StreamObserver<ExecuteActionsEmailResponse> responseObserver) {
-        withTransaction(session -> {
-            AdminAuth adminAuth = authenticate();
-
-            return withRealm(request.getRealm(), realm -> {
-                AdminPermissionEvaluator auth = AdminPermissions.evaluator(session, realm, adminAuth);
-
-                return withUser(realm, request.getUserId(), user -> {
-                    String redirectUri = nullable(request.getRedirectUri());
-                    String clientId = nullable(request.getClientId());
-                    Integer lifespan = nullable(request.getLifespan());
-                    List<String> requiredActions = request.getRequiredActionsList();
-
-                    auth.users().requireManage(user);
-
-                    if (user.getEmail() == null) {
-                        return ErrorResponse.error("User email missing", Response.Status.BAD_REQUEST);
-                    }
-
-                    if (!user.isEnabled()) {
-                        throw new WebApplicationException(
-                                ErrorResponse.error("User is disabled", Response.Status.BAD_REQUEST));
-                    }
-
-                    if (redirectUri != null && clientId == null) {
-                        throw new WebApplicationException(
-                                ErrorResponse.error("Client id missing", Response.Status.BAD_REQUEST));
-                    }
-
-                    if (clientId == null) {
-                        clientId = Constants.ACCOUNT_MANAGEMENT_CLIENT_ID;
-                    }
-
-                    ClientModel client = realm.getClientByClientId(clientId);
-                    if (client == null) {
-                        logger.debugf("Client %s doesn't exist", clientId);
-                        throw new WebApplicationException(
-                                ErrorResponse.error("Client doesn't exist", Response.Status.BAD_REQUEST));
-                    }
-                    if (!client.isEnabled()) {
-                        logger.debugf("Client %s is not enabled", clientId);
-                        throw new WebApplicationException(
-                                ErrorResponse.error("Client is not enabled", Response.Status.BAD_REQUEST));
-                    }
-
-                    String redirect;
-                    if (redirectUri != null) {
-                        redirect = RedirectUtils.verifyRedirectUri(session, redirectUri, client);
-                        if (redirect == null) {
-                            throw new WebApplicationException(
-                                    ErrorResponse.error("Invalid redirect uri.", Response.Status.BAD_REQUEST));
-                        }
-                    }
-
-                    if (lifespan == null) {
-                        lifespan = realm.getActionTokenGeneratedByAdminLifespan();
-                    }
-                    int expiration = Time.currentTime() + lifespan;
-                    ExecuteActionsActionToken token = new ExecuteActionsActionToken(user.getId(), expiration, requiredActions, redirectUri, clientId);
-
-                    try {
-                        UriBuilder builder = LoginActionsService.actionTokenProcessor(session.getContext().getUri());
-                        builder.queryParam("key", token.serialize(session, realm, session.getContext().getUri()));
-
-                        String link = builder.build(realm.getName()).toString();
-
-                        session.getProvider(EmailTemplateProvider.class)
-                                .setAttribute(Constants.TEMPLATE_ATTR_REQUIRED_ACTIONS, token.getRequiredActions())
-                                .setRealm(realm)
-                                .setUser(user)
-                                .sendExecuteActions(link, TimeUnit.SECONDS.toMinutes(lifespan));
-
-                        //audit.user(user).detail(Details.EMAIL, user.getEmail()).detail(Details.CODE_ID, accessCode.getCodeId()).success();
-
-//                        adminEvent.operation(OperationType.ACTION).resourcePath(session.getContext().getUri()).success();
-
-                        return Response.ok().build();
-                    } catch (EmailException e) {
-                        ServicesLogger.LOGGER.failedToSendActionsEmail(e);
-                        return ErrorResponse.error("Failed to send execute actions email", Response.Status.INTERNAL_SERVER_ERROR);
-                    }
-                });
-            });
+        Response response = withTransaction(session -> {
+            RealmsAdminResource resource = getRealmsAdmin(HttpMethod.PUT, getBaseUrl() + "/" + request.getRealm() + "/users/" + request.getUserId() + "/execute-actions-email");
+            RealmAdminResource realmResource = resource.getRealmAdmin(getHeaders(), request.getRealm());
+            UsersResource usersResource = realmResource.users();
+            UserResource user = usersResource.user(request.getUserId());
+            return user.executeActionsEmail(nullable(request.getRedirectUri()),
+                    nullable(request.getClientId()),
+                    nullable(request.getLifespan()),
+                    request.getRequiredActionsList());
         });
 
-        ExecuteActionsEmailResponse res = ExecuteActionsEmailResponse.newBuilder().build();
-        responseObserver.onNext(res);
-        responseObserver.onCompleted();
+        if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+            ExecuteActionsEmailResponse res = ExecuteActionsEmailResponse.newBuilder().build();
+            responseObserver.onNext(res);
+            responseObserver.onCompleted();
+        } else {
+            // TODO return error
+        }
     }
 }
