@@ -1,23 +1,18 @@
 package jp.openstandia.keycloak.grpc;
 
 import io.grpc.BindableService;
-import org.jboss.resteasy.core.Dispatcher;
-import org.jboss.resteasy.core.Headers;
-import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.jboss.resteasy.spi.ResteasyUriInfo;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.common.util.Resteasy;
-import org.keycloak.models.*;
+import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakTransaction;
+import org.keycloak.models.KeycloakTransactionManager;
 import org.keycloak.provider.Provider;
-import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resources.KeycloakApplication;
-import org.keycloak.services.resources.admin.*;
+import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.GrpcAdminRoot;
 
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 
@@ -67,7 +62,7 @@ public interface GrpcServiceProvider extends Provider, BindableService {
 
         try {
             tx.begin();
-            T result = task.run(session);
+            T result = task.run(new TransactionalTaskContext(getBaseUrl(), session));
             if (tx.isActive()) {
                 if (tx.getRollbackOnly()) {
                     tx.rollback();
@@ -86,11 +81,22 @@ public interface GrpcServiceProvider extends Provider, BindableService {
         }
     }
 
+    default <T> T runAdminTask(AdminTask<T> task) {
+        return withTransaction(ctx -> {
+            String token = Constant.AuthorizationHeaderContextKey.get();
+
+            GrpcAdminRoot adminRoot = new GrpcAdminRoot(ctx.session, HttpMethod.GET, getBaseUrl() + "/admin");
+            AdminAuth adminAuth = adminRoot.authenticateRealmAdminRequest(token);
+
+            return task.run(new AdminTaskContext(ctx, adminRoot, adminAuth));
+        });
+    }
+
     default AdminAuth authenticate() {
         KeycloakSession session = getKeycloakSession();
         KeycloakTransactionManager tx = session.getTransactionManager();
         if (!tx.isActive() || Resteasy.getContextData(UriInfo.class) == null) {
-            throw new IllegalStateException("You must call authenticate() within 'withTransaction()'");
+            throw new IllegalStateException("You must call this method within 'withTransaction()'");
         }
 
         String token = Constant.AuthorizationHeaderContextKey.get();
@@ -101,75 +107,11 @@ public interface GrpcServiceProvider extends Provider, BindableService {
         return adminAuth;
     }
 
-    default HttpHeaders getHeaders() {
-        String token = Constant.AuthorizationHeaderContextKey.get();
-
-        MultivaluedMap<String, String> map = new Headers<>();
-        map.putSingle("Authorization", token);
-        HttpHeaders headers = new ResteasyHttpHeaders(map);
-        return headers;
-    }
-
-    default RealmModel getRealm(String realmName) {
-        KeycloakSession session = getKeycloakSession();
-        KeycloakTransactionManager tx = session.getTransactionManager();
-        if (!tx.isActive() || Resteasy.getContextData(UriInfo.class) == null) {
-            throw new IllegalStateException("You must call getRealm() within 'withTransaction()'");
-        }
-
-        RealmManager realmManager = new RealmManager(session);
-        RealmModel realm = realmManager.getRealmByName(realmName);
-        if (realm == null) {
-            throw new NotFoundException("Realm does not exist");
-        }
-        return realm;
-    }
-
-    default RealmsAdminResource getRealmsAdmin(String httpMethod, String realm, String pathTemplate, String ...params) {
-        KeycloakSession session = getKeycloakSession();
-        KeycloakTransactionManager tx = session.getTransactionManager();
-
-        String baseUrl = getBaseUrl();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(baseUrl);
-        sb.append("/");
-        sb.append(String.format(pathTemplate, params));
-        String url = sb.toString();
-
-        if (!tx.isActive() || Resteasy.getContextData(UriInfo.class) == null) {
-            throw new IllegalStateException("You must call getRealmsAdmin() within 'withTransaction()'");
-        }
-
-        URI uri = URI.create(url);
-        URI baseUri = URI.create(baseUrl);
-
-        ResteasyUriInfo resteasyUriInfo = new ResteasyUriInfo(url, uri.getRawQuery(), baseUri.getPath());
-        Resteasy.pushContext(UriInfo.class, resteasyUriInfo);
-
-        GrpcAdminRoot adminRoot = new GrpcAdminRoot(session, httpMethod, url);
-        return (RealmsAdminResource) adminRoot.getRealmsAdmin(getHeaders());
-    }
-
-    default RealmAdminResource getRealmAdmin(String httpMethod, String realm, String pathTemplate, String ...params) {
-        RealmsAdminResource resource = getRealmsAdmin(httpMethod, realm, pathTemplate, params);
-        return  resource.getRealmAdmin(getHeaders(), realm);
-    }
-
-    default UsersResource getUsers(String httpMethod, String realm, String pathTemplate, String ...params) {
-        RealmAdminResource resource = getRealmAdmin(httpMethod, realm, pathTemplate, params);
-        return  resource.users();
+    default String getToken() {
+        return Constant.AuthorizationHeaderContextKey.get();
     }
 
     @Override
     default void close() {
-    }
-
-    public interface RealmTask<T> {
-        T run(RealmModel realm);
-    }
-
-    public interface UserTask<T> {
-        T run(UserModel user);
     }
 }

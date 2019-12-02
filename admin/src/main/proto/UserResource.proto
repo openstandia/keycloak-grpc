@@ -8,6 +8,8 @@ package keycloak;
 service UserResource {
     rpc executeActionsEmail(ExecuteActionsEmailRequest) returns (ExecuteActionsEmailResponse);
     rpc executeActionsEmailByUsername(ExecuteActionsEmailByUsernameRequest) returns (ExecuteActionsEmailResponse);
+    rpc logout(LogoutRequest) returns (LogoutResponse);
+    rpc logoutByUsername(LogoutByUsernameRequest) returns (LogoutResponse);
 }
 
 message ExecuteActionsEmailRequest {
@@ -27,5 +29,21 @@ message ExecuteActionsEmailByUsernameRequest {
     int32 lifespan = 5;
     repeated string requiredActions = 6;
 }
+
 message ExecuteActionsEmailResponse {
+}
+
+message LogoutRequest {
+    string realm = 1;
+    string userId = 2;
+}
+
+message LogoutByUsernameRequest {
+    string realm = 1;
+    string username = 2;
+    bool removeCurrent = 3;
+    string currentSessionId = 4;
+}
+
+message LogoutResponse {
 }

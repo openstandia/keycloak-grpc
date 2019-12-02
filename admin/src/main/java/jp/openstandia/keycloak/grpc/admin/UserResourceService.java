@@ -1,39 +1,25 @@
 package jp.openstandia.keycloak.grpc.admin;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.ProtocolStringList;
 import io.grpc.stub.StreamObserver;
-import jp.openstandia.keycloak.grpc.BuilderWrapper;
 import jp.openstandia.keycloak.grpc.GrpcServiceProvider;
 import org.jboss.logging.Logger;
-import org.keycloak.authentication.actiontoken.execactions.ExecuteActionsActionToken;
 import org.keycloak.common.util.Time;
-import org.keycloak.credential.CredentialModel;
-import org.keycloak.email.EmailException;
-import org.keycloak.email.EmailTemplateProvider;
-import org.keycloak.models.ClientModel;
-import org.keycloak.models.Constants;
+import org.keycloak.events.admin.OperationType;
+import org.keycloak.events.admin.ResourceType;
+import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
-import org.keycloak.protocol.oidc.utils.RedirectUtils;
-import org.keycloak.services.ErrorResponse;
-import org.keycloak.services.ForbiddenException;
-import org.keycloak.services.ServicesLogger;
-import org.keycloak.services.managers.RealmManager;
-import org.keycloak.services.resources.LoginActionsService;
-import org.keycloak.services.resources.admin.*;
+import org.keycloak.models.UserSessionModel;
+import org.keycloak.services.managers.AuthenticationManager;
+import org.keycloak.services.resources.admin.AdminEventBuilder;
+import org.keycloak.services.resources.admin.UserResource;
+import org.keycloak.services.resources.admin.UsersResource;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
-import org.keycloak.services.resources.admin.permissions.AdminPermissions;
-import org.keycloak.services.resources.admin.permissions.UserPermissionEvaluator;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class UserResourceService extends UserResourceGrpc.UserResourceImplBase implements GrpcServiceProvider {
 
@@ -41,8 +27,8 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
 
     @Override
     public void executeActionsEmail(ExecuteActionsEmailRequest request, StreamObserver<ExecuteActionsEmailResponse> responseObserver) {
-        Response response = withTransaction(session -> {
-            UsersResource resource = getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", request.getUserId());
+        Response response = runAdminTask(ctx -> {
+            UsersResource resource = ctx.getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", request.getUserId());
             UserResource user = resource.user(request.getUserId());
             return user.executeActionsEmail(nullable(request.getRedirectUri()),
                     nullable(request.getClientId()),
@@ -61,14 +47,14 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
 
     @Override
     public void executeActionsEmailByUsername(ExecuteActionsEmailByUsernameRequest request, StreamObserver<ExecuteActionsEmailResponse> responseObserver) {
-        Response response = withTransaction(session -> {
-            RealmModel realm = getRealm(request.getRealm());
+        Response response = runAdminTask(ctx -> {
+            RealmModel realm = ctx.getRealm(request.getRealm());
             UserModel userModel = getKeycloakSession().users().getUserByUsername(request.getUsername(), realm);
             if (userModel == null) {
                 throw new NotFoundException("User does not exist");
             }
 
-            UsersResource resource = getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", userModel.getId());
+            UsersResource resource = ctx.getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", userModel.getId());
             UserResource user = resource.user(userModel.getId());
             return user.executeActionsEmail(nullable(request.getRedirectUri()),
                     nullable(request.getClientId()),
@@ -83,5 +69,63 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
         } else {
             // TODO return error
         }
+    }
+
+    @Override
+    public void logout(LogoutRequest request, StreamObserver<LogoutResponse> responseObserver) {
+        runAdminTask(ctx -> {
+            UsersResource resource = ctx.getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", request.getUserId());
+            UserResource user = resource.user(request.getUserId());
+            user.logout();
+            return null;
+        });
+
+        // TODO return error
+
+        LogoutResponse res = LogoutResponse.newBuilder().build();
+        responseObserver.onNext(res);
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void logoutByUsername(LogoutByUsernameRequest request, StreamObserver<LogoutResponse> responseObserver) {
+        runAdminTask(ctx -> {
+            KeycloakSession session = ctx.session;
+
+            RealmModel realm = ctx.getRealm(request.getRealm());
+            AdminPermissionEvaluator auth = ctx.getAdminPermission(realm);
+            AdminEventBuilder adminEvent = ctx.getAdminEventBuilder(realm)
+                    .realm(realm)
+                    .resource(ResourceType.USER);
+
+            UserModel userModel = getKeycloakSession().users().getUserByUsername(request.getUsername(), realm);
+            if (userModel == null) {
+                throw new NotFoundException("User does not exist");
+            }
+
+            auth.users().requireManage(userModel);
+
+            session.users().setNotBeforeForUser(realm, userModel, Time.currentTime());
+
+            List<UserSessionModel> userSessions = session.sessions().getUserSessions(realm, userModel);
+            for (UserSessionModel userSession : userSessions) {
+                if (request.getRemoveCurrent() || !isCurrentSession(userSession, request.getCurrentSessionId())) {
+                    AuthenticationManager.backchannelLogout(session, userSession, true);
+                }
+            }
+            adminEvent.operation(OperationType.ACTION).resourcePath(session.getContext().getUri()).success();
+
+            return null;
+        });
+
+        // TODO return error
+
+        LogoutResponse res = LogoutResponse.newBuilder().build();
+        responseObserver.onNext(res);
+        responseObserver.onCompleted();
+    }
+
+    private boolean isCurrentSession(UserSessionModel session, String current) {
+        return session.getId().equals(current);
     }
 }

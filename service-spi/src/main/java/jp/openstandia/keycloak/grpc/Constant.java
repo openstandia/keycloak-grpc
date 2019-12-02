@@ -4,7 +4,6 @@ import io.grpc.Context;
 import io.grpc.Metadata;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.services.resources.KeycloakApplication;
-import org.keycloak.services.resources.admin.AdminAuth;
 
 import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
 

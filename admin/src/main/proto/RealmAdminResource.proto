@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "jp.openstandia.keycloak.grpc.admin";
+
+package keycloak;
+
+service RealmAdminResource {
+    rpc logoutAll(LogoutAllRequest) returns (LogoutAllResponse);
+}
+
+message LogoutAllRequest {
+    string realm = 1;
+}
+
+message LogoutAllResponse {
+}

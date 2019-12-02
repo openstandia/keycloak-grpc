@@ -1,2 +1,3 @@
+jp.openstandia.keycloak.grpc.admin.RealmAdminResourceServiceFactory
 jp.openstandia.keycloak.grpc.admin.UsersResourceServiceFactory
 jp.openstandia.keycloak.grpc.admin.UserResourceServiceFactory

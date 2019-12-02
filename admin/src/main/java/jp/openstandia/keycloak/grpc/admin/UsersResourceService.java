@@ -3,18 +3,8 @@ package jp.openstandia.keycloak.grpc.admin;
 import io.grpc.stub.StreamObserver;
 import jp.openstandia.keycloak.grpc.BuilderWrapper;
 import jp.openstandia.keycloak.grpc.GrpcServiceProvider;
-import org.keycloak.credential.CredentialModel;
-import org.keycloak.models.RealmModel;
-import org.keycloak.models.UserModel;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.keycloak.services.managers.RealmManager;
-import org.keycloak.services.resources.admin.AdminAuth;
-import org.keycloak.services.resources.admin.RealmAdminResource;
-import org.keycloak.services.resources.admin.RealmsAdminResource;
 import org.keycloak.services.resources.admin.UsersResource;
-import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
-import org.keycloak.services.resources.admin.permissions.AdminPermissions;
-import org.keycloak.services.resources.admin.permissions.UserPermissionEvaluator;
 
 import javax.ws.rs.HttpMethod;
 import java.util.List;
@@ -24,8 +14,8 @@ public class UsersResourceService extends UsersResourceGrpc.UsersResourceImplBas
 
     @Override
     public void getUsers(GetUsersRequest request, StreamObserver<GetUsersResponse> responseObserver) {
-        List<User> results = withTransaction(session -> {
-            UsersResource usersResource = getUsers(HttpMethod.GET, request.getRealm(), "users");
+        List<User> results = runAdminTask(ctx -> {
+            UsersResource usersResource = ctx.getUsers(HttpMethod.GET, request.getRealm(), "users");
 
             List<UserRepresentation> users = usersResource.getUsers(null, null, null, null, null, null, null, null);
 
