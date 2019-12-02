@@ -42,10 +42,34 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
     @Override
     public void executeActionsEmail(ExecuteActionsEmailRequest request, StreamObserver<ExecuteActionsEmailResponse> responseObserver) {
         Response response = withTransaction(session -> {
-            RealmsAdminResource resource = getRealmsAdmin(HttpMethod.PUT, getBaseUrl() + "/" + request.getRealm() + "/users/" + request.getUserId() + "/execute-actions-email");
-            RealmAdminResource realmResource = resource.getRealmAdmin(getHeaders(), request.getRealm());
-            UsersResource usersResource = realmResource.users();
-            UserResource user = usersResource.user(request.getUserId());
+            UsersResource resource = getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", request.getUserId());
+            UserResource user = resource.user(request.getUserId());
+            return user.executeActionsEmail(nullable(request.getRedirectUri()),
+                    nullable(request.getClientId()),
+                    nullable(request.getLifespan()),
+                    request.getRequiredActionsList());
+        });
+
+        if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+            ExecuteActionsEmailResponse res = ExecuteActionsEmailResponse.newBuilder().build();
+            responseObserver.onNext(res);
+            responseObserver.onCompleted();
+        } else {
+            // TODO return error
+        }
+    }
+
+    @Override
+    public void executeActionsEmailByUsername(ExecuteActionsEmailByUsernameRequest request, StreamObserver<ExecuteActionsEmailResponse> responseObserver) {
+        Response response = withTransaction(session -> {
+            RealmModel realm = getRealm(request.getRealm());
+            UserModel userModel = getKeycloakSession().users().getUserByUsername(request.getUsername(), realm);
+            if (userModel == null) {
+                throw new NotFoundException("User does not exist");
+            }
+
+            UsersResource resource = getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", userModel.getId());
+            UserResource user = resource.user(userModel.getId());
             return user.executeActionsEmail(nullable(request.getRedirectUri()),
                     nullable(request.getClientId()),
                     nullable(request.getLifespan()),

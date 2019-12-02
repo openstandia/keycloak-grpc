@@ -12,10 +12,9 @@ import org.keycloak.models.*;
 import org.keycloak.provider.Provider;
 import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resources.KeycloakApplication;
-import org.keycloak.services.resources.admin.AdminAuth;
-import org.keycloak.services.resources.admin.GrpcAdminRoot;
-import org.keycloak.services.resources.admin.RealmsAdminResource;
+import org.keycloak.services.resources.admin.*;
 
+import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
@@ -87,20 +86,6 @@ public interface GrpcServiceProvider extends Provider, BindableService {
         }
     }
 
-    default <T> T withRealm(String realmName, RealmTask<T> task) {
-        RealmManager realmManager = new RealmManager(getKeycloakSession());
-        RealmModel realm = realmManager.getRealmByName(realmName);
-        return task.run(realm);
-    }
-
-    default <T> T withUser(RealmModel realm, String userId, UserTask<T> task) {
-        UserModel user = getKeycloakSession().users().getUserById(userId, realm);
-        if (user == null) {
-            throw new NotFoundException("User not found");
-        }
-        return task.run(user);
-    }
-
     default AdminAuth authenticate() {
         KeycloakSession session = getKeycloakSession();
         KeycloakTransactionManager tx = session.getTransactionManager();
@@ -125,19 +110,55 @@ public interface GrpcServiceProvider extends Provider, BindableService {
         return headers;
     }
 
-    default RealmsAdminResource getRealmsAdmin(String httpMethod, String uri) {
+    default RealmModel getRealm(String realmName) {
         KeycloakSession session = getKeycloakSession();
         KeycloakTransactionManager tx = session.getTransactionManager();
+        if (!tx.isActive() || Resteasy.getContextData(UriInfo.class) == null) {
+            throw new IllegalStateException("You must call getRealm() within 'withTransaction()'");
+        }
+
+        RealmManager realmManager = new RealmManager(session);
+        RealmModel realm = realmManager.getRealmByName(realmName);
+        if (realm == null) {
+            throw new NotFoundException("Realm does not exist");
+        }
+        return realm;
+    }
+
+    default RealmsAdminResource getRealmsAdmin(String httpMethod, String realm, String pathTemplate, String ...params) {
+        KeycloakSession session = getKeycloakSession();
+        KeycloakTransactionManager tx = session.getTransactionManager();
+
+        String baseUrl = getBaseUrl();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(baseUrl);
+        sb.append("/");
+        sb.append(String.format(pathTemplate, params));
+        String url = sb.toString();
+
         if (!tx.isActive() || Resteasy.getContextData(UriInfo.class) == null) {
             throw new IllegalStateException("You must call getRealmsAdmin() within 'withTransaction()'");
         }
 
-        URI baseUri = URI.create(getBaseUrl());
-        ResteasyUriInfo resteasyUriInfo = new ResteasyUriInfo(uri, "", baseUri.getPath());
+        URI uri = URI.create(url);
+        URI baseUri = URI.create(baseUrl);
+
+        ResteasyUriInfo resteasyUriInfo = new ResteasyUriInfo(url, uri.getRawQuery(), baseUri.getPath());
         Resteasy.pushContext(UriInfo.class, resteasyUriInfo);
 
-        GrpcAdminRoot adminRoot = new GrpcAdminRoot(session, httpMethod, uri);
+        GrpcAdminRoot adminRoot = new GrpcAdminRoot(session, httpMethod, url);
         return (RealmsAdminResource) adminRoot.getRealmsAdmin(getHeaders());
+    }
+
+    default RealmAdminResource getRealmAdmin(String httpMethod, String realm, String pathTemplate, String ...params) {
+        RealmsAdminResource resource = getRealmsAdmin(httpMethod, realm, pathTemplate, params);
+        return  resource.getRealmAdmin(getHeaders(), realm);
+    }
+
+    default UsersResource getUsers(String httpMethod, String realm, String pathTemplate, String ...params) {
+        RealmAdminResource resource = getRealmAdmin(httpMethod, realm, pathTemplate, params);
+        return  resource.users();
     }
 
     @Override

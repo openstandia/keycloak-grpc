@@ -25,9 +25,7 @@ public class UsersResourceService extends UsersResourceGrpc.UsersResourceImplBas
     @Override
     public void getUsers(GetUsersRequest request, StreamObserver<GetUsersResponse> responseObserver) {
         List<User> results = withTransaction(session -> {
-            RealmsAdminResource resource = getRealmsAdmin(HttpMethod.GET, getBaseUrl() + "/" + request.getRealm() + "/users");
-            RealmAdminResource realmResource = resource.getRealmAdmin(getHeaders(), request.getRealm());
-            UsersResource usersResource = realmResource.users();
+            UsersResource usersResource = getUsers(HttpMethod.GET, request.getRealm(), "users");
 
             List<UserRepresentation> users = usersResource.getUsers(null, null, null, null, null, null, null, null);
 

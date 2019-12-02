@@ -7,6 +7,7 @@ package keycloak;
 
 service UserResource {
     rpc executeActionsEmail(ExecuteActionsEmailRequest) returns (ExecuteActionsEmailResponse);
+    rpc executeActionsEmailByUsername(ExecuteActionsEmailByUsernameRequest) returns (ExecuteActionsEmailResponse);
 }
 
 message ExecuteActionsEmailRequest {
@@ -18,5 +19,13 @@ message ExecuteActionsEmailRequest {
     repeated string requiredActions = 6;
 }
 
+message ExecuteActionsEmailByUsernameRequest {
+    string realm = 1;
+    string username = 2;
+    string redirectUri = 3;
+    string clientId = 4;
+    int32 lifespan = 5;
+    repeated string requiredActions = 6;
+}
 message ExecuteActionsEmailResponse {
 }
