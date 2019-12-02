@@ -4,10 +4,11 @@ import org.jboss.resteasy.core.Headers;
 import org.jboss.resteasy.specimpl.ResteasyHttpHeaders;
 import org.jboss.resteasy.spi.ResteasyUriInfo;
 import org.keycloak.common.util.Resteasy;
-import org.keycloak.models.KeycloakTransactionManager;
 import org.keycloak.models.RealmModel;
 import org.keycloak.services.managers.RealmManager;
-import org.keycloak.services.resources.admin.*;
+import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.AdminEventBuilder;
+import org.keycloak.services.resources.admin.GrpcAdminRoot;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 
@@ -53,20 +54,8 @@ public class AdminTaskContext extends TransactionalTaskContext {
         return realm;
     }
 
-    public RealmsAdminResource getRealmsAdmin(String httpMethod, String realm, String pathTemplate, String ...params) {
-        KeycloakTransactionManager tx = session.getTransactionManager();
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(baseUrl);
-        sb.append("/admin/realms/");
-        sb.append(realm);
-        sb.append("/");
-        sb.append(String.format(pathTemplate, params));
-        String url = sb.toString();
-
-        if (!tx.isActive() || Resteasy.getContextData(UriInfo.class) == null) {
-            throw new IllegalStateException("You must call this method within 'withTransaction()'");
-        }
+    public void attachUri(String realm, String urlTemplate, String ...params) {
+        String url = String.format(urlTemplate, params);
 
         URI uri = URI.create(url);
         URI baseUri = URI.create(baseUrl);
@@ -74,17 +63,7 @@ public class AdminTaskContext extends TransactionalTaskContext {
         ResteasyUriInfo resteasyUriInfo = new ResteasyUriInfo(url, uri.getRawQuery(), baseUri.getPath());
         Resteasy.pushContext(UriInfo.class, resteasyUriInfo);
 
-        GrpcAdminRoot adminRoot = new GrpcAdminRoot(session, httpMethod, url);
-        return (RealmsAdminResource) adminRoot.getRealmsAdmin(getHeaders());
-    }
-
-    public RealmAdminResource getRealmAdmin(String httpMethod, String realm, String pathTemplate, String ...params) {
-        RealmsAdminResource resource = getRealmsAdmin(httpMethod, realm, pathTemplate, params);
-        return  resource.getRealmAdmin(getHeaders(), realm);
-    }
-
-    public UsersResource getUsers(String httpMethod, String realm, String pathTemplate, String ...params) {
-        RealmAdminResource resource = getRealmAdmin(httpMethod, realm, pathTemplate, params);
-        return  resource.users();
+        // Need this for resetting uriInfo in the KeycloakSession
+        session.getContext().setRealm(getRealm(realm));
     }
 }

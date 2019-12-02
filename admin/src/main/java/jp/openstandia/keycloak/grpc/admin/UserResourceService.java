@@ -21,14 +21,14 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
 import java.util.List;
 
-public class UserResourceService extends UserResourceGrpc.UserResourceImplBase implements GrpcServiceProvider {
+public class UserResourceService extends UserResourceGrpc.UserResourceImplBase implements GrpcAdminRESTServiceProvider {
 
     private static final Logger logger = Logger.getLogger(UserResourceService.class);
 
     @Override
     public void executeActionsEmail(ExecuteActionsEmailRequest request, StreamObserver<ExecuteActionsEmailResponse> responseObserver) {
-        Response response = runAdminTask(ctx -> {
-            UsersResource resource = ctx.getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", request.getUserId());
+        Response response = runAdminRestTask(ctx -> {
+            UsersResource resource = ctx.getUsersResource(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", request.getUserId());
             UserResource user = resource.user(request.getUserId());
             return user.executeActionsEmail(nullable(request.getRedirectUri()),
                     nullable(request.getClientId()),
@@ -47,14 +47,14 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
 
     @Override
     public void executeActionsEmailByUsername(ExecuteActionsEmailByUsernameRequest request, StreamObserver<ExecuteActionsEmailResponse> responseObserver) {
-        Response response = runAdminTask(ctx -> {
+        Response response = runAdminRestTask(ctx -> {
             RealmModel realm = ctx.getRealm(request.getRealm());
             UserModel userModel = getKeycloakSession().users().getUserByUsername(request.getUsername(), realm);
             if (userModel == null) {
                 throw new NotFoundException("User does not exist");
             }
 
-            UsersResource resource = ctx.getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", userModel.getId());
+            UsersResource resource = ctx.getUsersResource(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", userModel.getId());
             UserResource user = resource.user(userModel.getId());
             return user.executeActionsEmail(nullable(request.getRedirectUri()),
                     nullable(request.getClientId()),
@@ -73,8 +73,8 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
 
     @Override
     public void logout(LogoutRequest request, StreamObserver<LogoutResponse> responseObserver) {
-        runAdminTask(ctx -> {
-            UsersResource resource = ctx.getUsers(HttpMethod.PUT, request.getRealm(), "users/%s/execute-actions-email", request.getUserId());
+        runAdminRestTask(ctx -> {
+            UsersResource resource = ctx.getUsersResource(HttpMethod.PUT, request.getRealm(), "users/%s/logout", request.getUserId());
             UserResource user = resource.user(request.getUserId());
             user.logout();
             return null;
@@ -89,19 +89,21 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
 
     @Override
     public void logoutByUsername(LogoutByUsernameRequest request, StreamObserver<LogoutResponse> responseObserver) {
-        runAdminTask(ctx -> {
+        runAdminRestTask(ctx -> {
             KeycloakSession session = ctx.session;
 
             RealmModel realm = ctx.getRealm(request.getRealm());
-            AdminPermissionEvaluator auth = ctx.getAdminPermission(realm);
-            AdminEventBuilder adminEvent = ctx.getAdminEventBuilder(realm)
-                    .realm(realm)
-                    .resource(ResourceType.USER);
-
             UserModel userModel = getKeycloakSession().users().getUserByUsername(request.getUsername(), realm);
             if (userModel == null) {
                 throw new NotFoundException("User does not exist");
             }
+
+            ctx.attachAdminRestUri(request.getRealm(), "users/%s/logout", userModel.getId());
+
+            AdminPermissionEvaluator auth = ctx.getAdminPermission(realm);
+            AdminEventBuilder adminEvent = ctx.getAdminEventBuilder(realm)
+                    .realm(realm)
+                    .resource(ResourceType.USER);
 
             auth.users().requireManage(userModel);
 

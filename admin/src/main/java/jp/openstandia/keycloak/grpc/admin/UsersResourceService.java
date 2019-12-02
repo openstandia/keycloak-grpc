@@ -2,7 +2,6 @@ package jp.openstandia.keycloak.grpc.admin;
 
 import io.grpc.stub.StreamObserver;
 import jp.openstandia.keycloak.grpc.BuilderWrapper;
-import jp.openstandia.keycloak.grpc.GrpcServiceProvider;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.services.resources.admin.UsersResource;
 
@@ -10,12 +9,12 @@ import javax.ws.rs.HttpMethod;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class UsersResourceService extends UsersResourceGrpc.UsersResourceImplBase implements GrpcServiceProvider {
+public class UsersResourceService extends UsersResourceGrpc.UsersResourceImplBase implements GrpcAdminRESTServiceProvider {
 
     @Override
     public void getUsers(GetUsersRequest request, StreamObserver<GetUsersResponse> responseObserver) {
-        List<User> results = runAdminTask(ctx -> {
-            UsersResource usersResource = ctx.getUsers(HttpMethod.GET, request.getRealm(), "users");
+        List<User> results = runAdminRestTask(ctx -> {
+            UsersResource usersResource = ctx.getUsersResource(HttpMethod.GET, request.getRealm(), "users");
 
             List<UserRepresentation> users = usersResource.getUsers(null, null, null, null, null, null, null, null);
 
