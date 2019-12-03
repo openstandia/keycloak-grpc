@@ -14,4 +14,6 @@ message LogoutAllRequest {
 }
 
 message LogoutAllResponse {
+    repeated string failedRequests = 1;
+    repeated string successRequests = 2;
 }

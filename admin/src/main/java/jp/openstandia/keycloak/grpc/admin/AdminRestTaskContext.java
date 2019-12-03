@@ -2,12 +2,7 @@ package jp.openstandia.keycloak.grpc.admin;
 
 import jp.openstandia.keycloak.grpc.AdminTaskContext;
 import jp.openstandia.keycloak.grpc.TransactionalTaskContext;
-import org.jboss.resteasy.spi.ResteasyUriInfo;
-import org.keycloak.common.util.Resteasy;
 import org.keycloak.services.resources.admin.*;
-
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
 
 public class AdminRestTaskContext extends AdminTaskContext {
 

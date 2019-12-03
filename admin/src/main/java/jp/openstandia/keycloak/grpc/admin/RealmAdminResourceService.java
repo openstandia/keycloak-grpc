@@ -18,9 +18,10 @@ public class RealmAdminResourceService extends RealmAdminResourceGrpc.RealmAdmin
             return resource.logoutAll();
         });
 
-        // TODO return result
-
-        LogoutAllResponse res = LogoutAllResponse.newBuilder().build();
+        LogoutAllResponse res = LogoutAllResponse.newBuilder()
+                .addAllFailedRequests(response.getFailedRequests())
+                .addAllSuccessRequests(response.getSuccessRequests())
+                .build();
         responseObserver.onNext(res);
         responseObserver.onCompleted();
     }

@@ -1,7 +1,7 @@
 package jp.openstandia.keycloak.grpc.admin;
 
 import io.grpc.stub.StreamObserver;
-import jp.openstandia.keycloak.grpc.GrpcServiceProvider;
+import jp.openstandia.keycloak.grpc.ErrorHandler;
 import org.jboss.logging.Logger;
 import org.keycloak.common.util.Time;
 import org.keycloak.events.admin.OperationType;
@@ -36,13 +36,13 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
                     request.getRequiredActionsList());
         });
 
-        if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-            ExecuteActionsEmailResponse res = ExecuteActionsEmailResponse.newBuilder().build();
-            responseObserver.onNext(res);
-            responseObserver.onCompleted();
-        } else {
-            // TODO return error
+        if (ErrorHandler.hasError(response)) {
+            throw ErrorHandler.convert(response);
         }
+
+        ExecuteActionsEmailResponse res = ExecuteActionsEmailResponse.newBuilder().build();
+        responseObserver.onNext(res);
+        responseObserver.onCompleted();
     }
 
     @Override
@@ -62,13 +62,13 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
                     request.getRequiredActionsList());
         });
 
-        if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-            ExecuteActionsEmailResponse res = ExecuteActionsEmailResponse.newBuilder().build();
-            responseObserver.onNext(res);
-            responseObserver.onCompleted();
-        } else {
-            // TODO return error
+        if (ErrorHandler.hasError(response)) {
+            throw ErrorHandler.convert(response);
         }
+
+        ExecuteActionsEmailResponse res = ExecuteActionsEmailResponse.newBuilder().build();
+        responseObserver.onNext(res);
+        responseObserver.onCompleted();
     }
 
     @Override
@@ -79,8 +79,6 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
             user.logout();
             return null;
         });
-
-        // TODO return error
 
         LogoutResponse res = LogoutResponse.newBuilder().build();
         responseObserver.onNext(res);
@@ -119,8 +117,6 @@ public class UserResourceService extends UserResourceGrpc.UserResourceImplBase i
 
             return null;
         });
-
-        // TODO return error
 
         LogoutResponse res = LogoutResponse.newBuilder().build();
         responseObserver.onNext(res);

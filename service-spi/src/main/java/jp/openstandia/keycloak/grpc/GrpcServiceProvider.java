@@ -75,7 +75,7 @@ public interface GrpcServiceProvider extends Provider, BindableService {
             if (tx.isActive()) {
                 tx.rollback();
             }
-            throw e;
+            throw ErrorHandler.convert(e);
         } finally {
             Resteasy.clearContextData();
         }
