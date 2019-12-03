@@ -4,7 +4,7 @@
 
     <groupId>jp.openstandia.keycloak.grpc</groupId>
     <artifactId>keycloak-grpc-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Keycloak gRPC extension</name>
@@ -19,7 +19,7 @@
     </licenses>
 
     <properties>
-        <version.keycloak>8.0.0</version.keycloak>
+        <version.keycloak>8.0.1</version.keycloak>
         <version.grpc-java>1.25.0</version.grpc-java>
         <version.protoc>3.10.0</version.protoc>
 
