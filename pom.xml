@@ -10,6 +10,14 @@
     <name>Keycloak gRPC extension</name>
     <description/>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <properties>
         <version.keycloak>8.0.0</version.keycloak>
         <version.grpc-java>1.25.0</version.grpc-java>
