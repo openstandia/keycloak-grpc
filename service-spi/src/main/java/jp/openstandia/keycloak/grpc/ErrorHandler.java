@@ -42,6 +42,7 @@ public class ErrorHandler {
             return Status.FAILED_PRECONDITION
                     .withDescription(response.getStatusInfo().getReasonPhrase())
                     .asRuntimeException();
+
         }
 
         return Status.UNKNOWN
@@ -68,7 +69,7 @@ public class ErrorHandler {
                     .withCause(e)
                     .asRuntimeException();
         }
-        if (e instanceof ForbiddenException) {
+        if (e instanceof ForbiddenException || e instanceof org.keycloak.services.ForbiddenException ) {
             return Status.PERMISSION_DENIED
                     .withDescription(e.getMessage())
                     .withCause(e)
