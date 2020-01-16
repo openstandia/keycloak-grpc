@@ -82,10 +82,10 @@ public class KeycloakSessionInterceptor implements ServerInterceptor {
         String token = headers.get(Constant.AuthorizationMetadataKey);
 
         Context ctx = Context.current()
-                .withValue(Constant.KeycloakApplicationContextKey, application)
-                .withValue(Constant.KeycloakSessionContextKey, session)
-                .withValue(Constant.BaseUrlContextKey, baseUrl)
-                .withValue(Constant.AuthorizationHeaderContextKey, token);
+                .withValue(ServerConstant.KeycloakApplicationContextKey, application)
+                .withValue(ServerConstant.KeycloakSessionContextKey, session)
+                .withValue(ServerConstant.BaseUrlContextKey, baseUrl)
+                .withValue(ServerConstant.AuthorizationHeaderContextKey, token);
 
         return Contexts.interceptCall(ctx, serverCall, headers, next);
     }

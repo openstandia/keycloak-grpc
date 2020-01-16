@@ -8,11 +8,13 @@
         <outputRelativeToContentRoot value="true" />
         <module name="keycloak-grpc-server" />
         <module name="keycloak-grpc-admin-services" />
+        <module name="keycloak-grpc-client-spi" />
         <module name="keycloak-grpc-service-spi" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="keycloak-grpc-admin-services" target="1.8" />
+      <module name="keycloak-grpc-client-spi" target="1.8" />
       <module name="keycloak-grpc-parent" target="1.5" />
       <module name="keycloak-grpc-server" target="1.8" />
       <module name="keycloak-grpc-service-spi" target="1.8" />

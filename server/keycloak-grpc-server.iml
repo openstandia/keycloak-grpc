@@ -94,5 +94,6 @@
     <orderEntry type="library" name="Maven: io.grpc:grpc-protobuf-lite:1.25.0" level="project" />
     <orderEntry type="library" name="Maven: io.grpc:grpc-stub:1.25.0" level="project" />
     <orderEntry type="module" module-name="keycloak-grpc-service-spi" />
+    <orderEntry type="module" module-name="keycloak-grpc-client-spi" />
   </component>
 </module>
