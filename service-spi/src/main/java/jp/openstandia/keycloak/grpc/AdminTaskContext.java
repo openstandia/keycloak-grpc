@@ -29,7 +29,7 @@ public class AdminTaskContext extends TransactionalTaskContext {
     }
 
     public HttpHeaders getHeaders() {
-        String token = Constant.AuthorizationHeaderContextKey.get();
+        String token = ServerConstant.AuthorizationHeaderContextKey.get();
 
         MultivaluedMap<String, String> map = new Headers<>();
         map.putSingle("Authorization", token);

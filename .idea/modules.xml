@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/admin/keycloak-grpc-admin-services.iml" filepath="$PROJECT_DIR$/admin/keycloak-grpc-admin-services.iml" />
+      <module fileurl="file://$PROJECT_DIR$/client-spi/keycloak-grpc-client-spi.iml" filepath="$PROJECT_DIR$/client-spi/keycloak-grpc-client-spi.iml" />
       <module fileurl="file://$PROJECT_DIR$/keycloak-grpc-parent.iml" filepath="$PROJECT_DIR$/keycloak-grpc-parent.iml" />
       <module fileurl="file://$PROJECT_DIR$/server/keycloak-grpc-server.iml" filepath="$PROJECT_DIR$/server/keycloak-grpc-server.iml" />
       <module fileurl="file://$PROJECT_DIR$/service-spi/keycloak-grpc-service-spi.iml" filepath="$PROJECT_DIR$/service-spi/keycloak-grpc-service-spi.iml" />

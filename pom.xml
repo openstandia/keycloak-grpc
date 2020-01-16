@@ -27,6 +27,7 @@
     </properties>
     
     <modules>
+        <module>client-spi</module>
         <module>server</module>
         <module>service-spi</module>
         <module>admin</module>
@@ -83,6 +84,11 @@
             <dependency>
                 <groupId>jp.openstandia.keycloak.grpc</groupId>
                 <artifactId>keycloak-grpc-service-spi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>jp.openstandia.keycloak.grpc</groupId>
+                <artifactId>keycloak-grpc-client-spi</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

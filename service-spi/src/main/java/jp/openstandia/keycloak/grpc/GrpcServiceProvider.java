@@ -34,15 +34,15 @@ public interface GrpcServiceProvider extends Provider, BindableService {
     }
 
     default KeycloakApplication getKeycloakApplication() {
-        return Constant.KeycloakApplicationContextKey.get();
+        return ServerConstant.KeycloakApplicationContextKey.get();
     }
 
     default KeycloakSession getKeycloakSession() {
-        return Constant.KeycloakSessionContextKey.get();
+        return ServerConstant.KeycloakSessionContextKey.get();
     }
 
     default String getBaseUrl() {
-        return Constant.BaseUrlContextKey.get();
+        return ServerConstant.BaseUrlContextKey.get();
     }
 
     default <T> T withTransaction(TransactionalTask<T> task) {
@@ -83,7 +83,7 @@ public interface GrpcServiceProvider extends Provider, BindableService {
 
     default <T> T runAdminTask(AdminTask<T> task) {
         return withTransaction(ctx -> {
-            String token = Constant.AuthorizationHeaderContextKey.get();
+            String token = ServerConstant.AuthorizationHeaderContextKey.get();
 
             GrpcAdminRoot adminRoot = new GrpcAdminRoot(ctx.session, HttpMethod.GET, getBaseUrl() + "/admin");
             AdminAuth adminAuth = adminRoot.authenticateRealmAdminRequest(token);
@@ -99,7 +99,7 @@ public interface GrpcServiceProvider extends Provider, BindableService {
             throw new IllegalStateException("You must call this method within 'withTransaction()'");
         }
 
-        String token = Constant.AuthorizationHeaderContextKey.get();
+        String token = ServerConstant.AuthorizationHeaderContextKey.get();
 
         GrpcAdminRoot adminRoot = new GrpcAdminRoot(session);
         AdminAuth adminAuth = adminRoot.authenticateRealmAdminRequest(token);
@@ -108,7 +108,7 @@ public interface GrpcServiceProvider extends Provider, BindableService {
     }
 
     default String getToken() {
-        return Constant.AuthorizationHeaderContextKey.get();
+        return ServerConstant.AuthorizationHeaderContextKey.get();
     }
 
     @Override

@@ -75,7 +75,6 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.webauthn4j:webauthn4j-util:0.9.14.RELEASE" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.9.9" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.kerby:kerby-asn1:2.0.0" level="project" />
-    <orderEntry type="module" module-name="keycloak-grpc-service-spi" scope="PROVIDED" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: io.grpc:grpc-netty-shaded:1.25.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: io.grpc:grpc-core:1.25.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.code.gson:gson:2.8.5" level="project" />
@@ -98,5 +97,7 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.api.grpc:proto-google-common-protos:1.12.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: io.grpc:grpc-protobuf-lite:1.25.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: io.grpc:grpc-stub:1.25.0" level="project" />
+    <orderEntry type="module" module-name="keycloak-grpc-service-spi" scope="PROVIDED" />
+    <orderEntry type="module" module-name="keycloak-grpc-client-spi" scope="TEST" />
   </component>
 </module>
