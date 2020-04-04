@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata modelVersion="1.1.0">
+  <groupId>org.keycloak.extensions</groupId>
+  <artifactId>keycloak-discord-ear</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20200404.084507</timestamp>
+      <buildNumber>1</buildNumber>
+    </snapshot>
+    <lastUpdated>20200404084507</lastUpdated>
+    <snapshotVersions>
+      <snapshotVersion>
+        <extension>ear</extension>
+        <value>0.3.0-20200404.084507-1</value>
+        <updated>20200404084507</updated>
+      </snapshotVersion>
+      <snapshotVersion>
+        <extension>pom</extension>
+        <value>0.3.0-20200404.084507-1</value>
+        <updated>20200404084507</updated>
+      </snapshotVersion>
+    </snapshotVersions>
+  </versioning>
+</metadata>
